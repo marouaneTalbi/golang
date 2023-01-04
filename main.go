@@ -1,6 +1,7 @@
 package main
 
 import (
+	"example/golang_/broadcasters"
 	"example/golang_/controllers"
 	"example/golang_/initializers"
 
@@ -15,17 +16,23 @@ func init() {
 
 func main() {
 	r := gin.Default()
-	r.POST("/products", controllers.ProductsCreate)
-	r.GET("/products", controllers.ProductsIndex)
-	r.GET("/products/:id", controllers.ProductsShow)
-	r.PUT("/products/:id", controllers.ProductsUpdate)
-	r.DELETE("/products/:id", controllers.ProductDelete)
+	b := broadcasters.NewBroadcaster(20)
 
-	r.POST("/payments", controllers.PaymentCreate)
-	r.GET("/payments", controllers.PaymentIndex)
-	r.GET("/payments/:id", controllers.PaymentShow)
-	r.PUT("/payments/:id", controllers.PaymentUpdate)
-	r.DELETE("/payments/:id", controllers.PaymentDelete)
+	ginAdapter := controllers.NewGinAdapter(b)
+
+	r.POST("/products", ginAdapter.ProductsCreate)
+	r.GET("/products", ginAdapter.ProductsIndex)
+	r.GET("/products/:id", ginAdapter.ProductsShow)
+	r.PUT("/products/:id", ginAdapter.ProductsUpdate)
+	r.DELETE("/products/:id", ginAdapter.ProductDelete)
+
+	r.POST("/payments", ginAdapter.PaymentCreate)
+	r.GET("/payments", ginAdapter.PaymentIndex)
+	r.GET("/payments/:id", ginAdapter.PaymentShow)
+	r.PUT("/payments/:id", ginAdapter.PaymentUpdate)
+	r.DELETE("/payments/:id", ginAdapter.PaymentDelete)
+
+	r.GET("/stream", ginAdapter.Stream)
 
 	r.Run()
 }
