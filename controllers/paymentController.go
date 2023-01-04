@@ -15,8 +15,7 @@ type ginAdapter struct {
 }
 
 type Message struct {
-	UserId string
-	Text   string
+	Text string
 }
 
 type Response struct {
@@ -51,7 +50,7 @@ func (adapter *ginAdapter) Stream(c *gin.Context) {
 				c.SSEvent("message", message)
 				return false
 			}
-			c.SSEvent("message", " "+serviceMsg.UserId+" → "+serviceMsg.Text)
+			c.SSEvent("message", serviceMsg.Text)
 			return true
 		}
 	})
@@ -69,11 +68,22 @@ func (adapter *ginAdapter) PaymentCreate(c *gin.Context) {
 	c.Bind(&newPayment)
 
 	payment := models.Payment{ProductID: newPayment.ProductID, PricePaid: newPayment.PricePaid}
-	result := initializers.DB.Create(&payment)
 
-	if result.Error != nil {
+	var product models.Product
+	initializers.DB.First(&product, newPayment.ProductID)
+
+	if product.Price == newPayment.PricePaid {
+		result := initializers.DB.Create(&payment)
+		if result.Error != nil {
+			c.JSON(500, gin.H{
+				"message": "Failed to pay for product",
+				"error":   newPayment,
+			})
+			return
+		}
+	} else {
 		c.JSON(500, gin.H{
-			"message": "Failed to pay for product",
+			"message": "Unvalid Price",
 			"error":   newPayment,
 		})
 		return
@@ -82,25 +92,24 @@ func (adapter *ginAdapter) PaymentCreate(c *gin.Context) {
 	b := adapter.broadcaster
 
 	b.Submit(Message{
-		UserId: "1",
-		Text:   "Payement is created",
+		Text: fmt.Sprintf("prix: %v", newPayment.PricePaid) + fmt.Sprintf(", Product name: %v", product.Name),
 	})
 
-	c.JSON(200, gin.H{
-		"message": payment,
-	})
+	// c.JSON(200, gin.H{
+	// 	"message": payment,
+	// })
 }
 
 func (adapter *ginAdapter) PaymentIndex(c *gin.Context) {
 	var payments []models.Payment
 	initializers.DB.Find(&payments)
 
-	b := adapter.broadcaster
+	// b := adapter.broadcaster
+	// fmt.Println(payments)
 
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Payement price is ??? ",
-	})
+	// b.Submit(Message{
+	// 	Text: "All Payements are fitched",
+	// })
 
 	c.JSON(200, gin.H{
 		"message": payments,
@@ -110,12 +119,11 @@ func (adapter *ginAdapter) PaymentIndex(c *gin.Context) {
 func (adapter *ginAdapter) PaymentShow(c *gin.Context) {
 	var payment models.Payment
 	initializers.DB.First(&payment, c.Param("id"))
-	b := adapter.broadcaster
+	// b := adapter.broadcaster
 
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Payements are fetched",
-	})
+	// b.Submit(Message{
+	// 	Text: "Payement are fetched : " + fmt.Sprintf("prix: %v", payment.PricePaid),
+	// })
 
 	c.JSON(200, gin.H{
 		"product": payment,
@@ -129,11 +137,14 @@ func (adapter *ginAdapter) PaymentUpdate(c *gin.Context) {
 		ProductID int64
 		PricePaid float64
 	}
+
 	c.Bind(&updatedPayment)
 	var payment models.Payment
 	initializers.DB.First(&payment, id)
-
 	initializers.DB.Model(&payment).Updates(models.Payment{ProductID: updatedPayment.ProductID, PricePaid: updatedPayment.PricePaid})
+
+	var product models.Product
+	initializers.DB.First(&product, updatedPayment.ProductID)
 
 	c.JSON(200, gin.H{
 		"product": payment,
@@ -142,8 +153,7 @@ func (adapter *ginAdapter) PaymentUpdate(c *gin.Context) {
 	b := adapter.broadcaster
 
 	b.Submit(Message{
-		UserId: "1",
-		Text:   "Payement is updated",
+		Text: "Payement is updated" + fmt.Sprintf(", Price: %v", payment.PricePaid) + fmt.Sprintf(", Product name: : %v", product.Name),
 	})
 }
 
@@ -161,7 +171,6 @@ func (adapter *ginAdapter) PaymentDelete(c *gin.Context) {
 	b := adapter.broadcaster
 
 	b.Submit(Message{
-		UserId: "1",
-		Text:   "Payement is deleted",
+		Text: "Payement is deleted",
 	})
 }

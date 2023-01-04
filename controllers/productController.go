@@ -17,6 +17,10 @@ func (adapter *ginAdapter) ProductsCreate(c *gin.Context) {
 	c.Bind(&newProduct)
 
 	product := models.Product{Name: newProduct.Name, Price: newProduct.Price}
+
+	var products []models.Product
+	initializers.DB.Find(&products)
+
 	result := initializers.DB.Create(&product)
 
 	if result.Error != nil {
@@ -27,13 +31,6 @@ func (adapter *ginAdapter) ProductsCreate(c *gin.Context) {
 		return
 	}
 
-	b := adapter.broadcaster
-
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Product is created",
-	})
-
 	c.JSON(200, gin.H{
 		"message": product,
 	})
@@ -43,13 +40,6 @@ func (adapter *ginAdapter) ProductsIndex(c *gin.Context) {
 	var products []models.Product
 	initializers.DB.Find(&products)
 
-	b := adapter.broadcaster
-
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Product price is ??? ",
-	})
-
 	c.JSON(200, gin.H{
 		"message": products,
 	})
@@ -58,13 +48,6 @@ func (adapter *ginAdapter) ProductsIndex(c *gin.Context) {
 func (adapter *ginAdapter) ProductsShow(c *gin.Context) {
 	var product models.Product
 	initializers.DB.First(&product, c.Param("id"))
-
-	b := adapter.broadcaster
-
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Products are fetched",
-	})
 
 	c.JSON(200, gin.H{
 		"product": product,
@@ -87,12 +70,6 @@ func (adapter *ginAdapter) ProductsUpdate(c *gin.Context) {
 		"product": product,
 	})
 
-	b := adapter.broadcaster
-
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Product is updated",
-	})
 }
 
 func (adapter *ginAdapter) ProductDelete(c *gin.Context) {
@@ -106,10 +83,4 @@ func (adapter *ginAdapter) ProductDelete(c *gin.Context) {
 		"message": "Product deleted",
 	})
 
-	b := adapter.broadcaster
-
-	b.Submit(Message{
-		UserId: "1",
-		Text:   "Product is deleted",
-	})
 }
